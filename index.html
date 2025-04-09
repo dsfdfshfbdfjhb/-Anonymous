@@ -1,108 +1,129 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Anonymous Confession Wall</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Chat</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #111;
-      color: #fff;
       margin: 0;
       padding: 0;
       display: flex;
-      flex-direction: column;
+      justify-content: center;
       align-items: center;
+      height: 100vh;
+      background-color: #f3f4f6;
     }
-
-    h1 {
-      margin-top: 20px;
-      font-size: 2rem;
-    }
-
-    .container {
-      width: 90%;
-      max-width: 600px;
-      margin: 20px auto;
-      background: #222;
-      padding: 20px;
-      border-radius: 15px;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
-    }
-
-    textarea {
-      width: 100%;
+    #chat-container {
+      width: 80%;
+      max-width: 800px;
+      border: 1px solid #ddd;
       padding: 10px;
-      border-radius: 10px;
-      border: none;
-      resize: vertical;
-      min-height: 80px;
-      font-size: 16px;
+      background-color: white;
+      display: flex;
+      flex-direction: column;
+      height: 80%;
+      border-radius: 8px;
+    }
+    #message-list {
+      flex-grow: 1;
+      overflow-y: auto;
       margin-bottom: 10px;
     }
-
-    button {
-      background: #4CAF50;
-      color: white;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 25px;
+    .message {
+      margin-bottom: 10px;
+    }
+    .message .name {
+      font-weight: bold;
+    }
+    input[type="text"], input[type="submit"] {
+      padding: 10px;
+      margin: 5px 0;
       font-size: 16px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    input[type="text"] {
+      width: 70%;
+    }
+    input[type="submit"] {
+      width: 20%;
       cursor: pointer;
     }
-
-    button:hover {
-      background: #45a049;
-    }
-
-    .confession {
-      background: #333;
-      margin-top: 15px;
-      padding: 15px;
-      border-radius: 10px;
-      word-wrap: break-word;
+    #nickname {
+      width: 100%;
+      padding: 10px;
+      font-size: 18px;
+      margin-bottom: 10px;
+      border-radius: 5px;
     }
   </style>
 </head>
 <body>
 
-  <h1>Anonymous Confession Wall</h1>
-  <div class="container">
-    <textarea id="confessionInput" placeholder="Type your anonymous confession..."></textarea>
-    <button onclick="addConfession()">Post Confession</button>
+  <div id="chat-container">
+    <h2>Global Chat</h2>
 
-    <div id="confessionList"></div>
+    <!-- Nickname input -->
+    <input type="text" id="nickname" placeholder="Enter a nickname..." />
+
+    <!-- Message display area -->
+    <div id="message-list"></div>
+
+    <!-- Message input area -->
+    <input type="text" id="message-input" placeholder="Type your message..." />
+    <input type="submit" value="Send" id="send-button" />
   </div>
 
   <script>
-    const confessionInput = document.getElementById("confessionInput");
-    const confessionList = document.getElementById("confessionList");
+    const apiUrl = "https://tinted-amazing-tapir.glitch.me"; // Your Glitch server URL
 
-    function loadConfessions() {
-      const confessions = JSON.parse(localStorage.getItem("confessions")) || [];
-      confessionList.innerHTML = "";
-      confessions.reverse().forEach((conf) => {
-        const div = document.createElement("div");
-        div.className = "confession";
-        div.innerText = conf;
-        confessionList.appendChild(div);
+    // Function to fetch and display messages
+    async function loadMessages() {
+      const response = await fetch(`${apiUrl}/messages`);
+      const messages = await response.json();
+      const messageList = document.getElementById("message-list");
+      messageList.innerHTML = ""; // Clear previous messages
+
+      messages.forEach(message => {
+        const messageElement = document.createElement("div");
+        messageElement.classList.add("message");
+        messageElement.innerHTML = `<span class="name">${message.name}:</span> ${message.text} <span style="font-size: 10px; color: #888;">(${new Date(message.time).toLocaleTimeString()})</span>`;
+        messageList.appendChild(messageElement);
       });
+      messageList.scrollTop = messageList.scrollHeight; // Auto-scroll to latest message
     }
 
-    function addConfession() {
-      const text = confessionInput.value.trim();
-      if (text === "") return;
+    // Function to send a message
+    async function sendMessage() {
+      const name = document.getElementById("nickname").value;
+      const text = document.getElementById("message-input").value;
 
-      let confessions = JSON.parse(localStorage.getItem("confessions")) || [];
-      confessions.push(text);
-      localStorage.setItem("confessions", JSON.stringify(confessions));
-      confessionInput.value = "";
-      loadConfessions();
+      if (name && text) {
+        const response = await fetch(`${apiUrl}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, text }),
+        });
+
+        if (response.ok) {
+          loadMessages();
+          document.getElementById("message-input").value = ""; // Clear the input field
+        }
+      }
     }
 
-    // Load confessions on page load
-    loadConfessions();
+    // Listen for Enter key or click on Send button
+    document.getElementById("send-button").addEventListener("click", sendMessage);
+    document.getElementById("message-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        sendMessage();
+      }
+    });
+
+    // Load messages when page loads
+    window.onload = loadMessages;
   </script>
 
 </body>
